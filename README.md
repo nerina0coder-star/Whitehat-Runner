@@ -12,9 +12,9 @@ THAT IS THE REASON THE REPOSITORY HAS NO TAGS YET.
 
 # This project currently has many issues as it has been build at Jun 10 3AM. I plan to spend only 1 hour daily on this project.
 
-# As I can dedicate at most 1 hour to this project, until version v0.0.1 is released, no tags will be given to this repository.
+# As I can dedicate at most 1 hour to this project, until version v0.0.1 is Released, no tags will be given to this repository.
 
-# This is my first time using pybind11 and c++, so it may take a few months for version v0.0.1 to be released with the expected features.
+# This is my first time using pybind11 and c++, so it may take a few months for a new version to come out with the expected features.
 
 # Until version v0.0.1-Beta, no files except README.md, [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [CONTRIBUTING.md](CONTRIBUTING.md), [LICENSE.md](LICENSE.md) and of course [LOGS.md](LOGS.md) will be put in this repository.
 
@@ -34,5 +34,4 @@ runner.run("[[ sum(num1=9, num2=11) ]]", run_here=True)
 - A sandbox to run filtered python code from, filtering and running code using a whitelist mechanism and iterating thru the given code from a c++ function.
 - A connection creator between files and the running python process.
 
-## Expected new release time - September 10 2026
-Necessary 
+## Expected new version time - September 10 2026
