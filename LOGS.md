@@ -8,3 +8,5 @@
 <br>
 ### Decision: Use Divide & Conquer
 ### Reason: To decrease the time complexity from O(n) to O(log(n))
+<br>
+### Advanced: created minimalist version of CodeCheck
