@@ -1,2 +1,6 @@
 /venv/
 /.*/
+/compile_commands.json/
+/pyproject.toml/
+/Test.py/
+/WhitehatRunner/CodeCheck.cpython-312-x86_64-linux-gnu.so/

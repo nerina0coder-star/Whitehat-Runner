@@ -11,7 +11,9 @@ while not stop:
     except Exception as e:
         answer = "\n" + str(e)
     print(f'Function answered with {answer}')
+    if input('Continue? (y/n) ').lower() == 'y':
+        stop = True
 func = Function(print)
 whitelist = Whitelist(func)
 runner = Runner(whitelist)
-runner.runner(raw="[start[ print('Hello!') ]end]", output_path='output.py', max_cpu=10, max_cpu_cores=1, max_ram=200) # problem is that it never stops
+runner.runner(raw="[start[ print('Hello!') ]end]", output_path='output.py', max_cpu=10, max_cpu_cores=1, max_ram=200)
