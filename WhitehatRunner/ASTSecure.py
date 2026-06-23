@@ -11,48 +11,53 @@ class ASTSecure(ast.NodeTransformer):
     def visit_Call(self, node):
         if isinstance(node.func, ast.Name) and node.func.id not in self.whitelist.whitelisted_globals:
             self.isSafe = False
-        self.generic_visit(node)
-        self.isSafe = True and self.isSafe
+        elif isinstance(node.func, ast.Attribute) and node.func.attr not in self.whitelist.whitelisted_globals:
+            self.isSafe = False
+        if self.isSafe:
+            self.generic_visit(node)
 
     def visit_ImportFrom(self, node):
-        self.isSafe = False
-        self.generic_visit(node)
-
-    def visit_Import(self, node):
-        self.isSafe = False
-        self.generic_visit(node)
+        if node.module not in self.whitelist.imports:
+            self.isSafe = False
+        if self.isSafe:
+            self.generic_visit(node)
 
     def visit_alias(self, node):
-        self.isSafe = False
-        self.generic_visit(node)
+        if node.name not in self.whitelist.imports:
+            self.isSafe = False
+        elif node.asname is not None and node.asname not in self.whitelist.aliases:
+            self.isSafe = False
+        if self.isSafe:
+            self.generic_visit(node)
 
     def visit_Assign(self, node):
-        if isinstance(node.value, ast.Constant):
-            if node.value not in self.whitelist.whitelisted_globals:
-                self.isSafe = False
-        elif isinstance(node.value, ast.Tuple):
-            for i in node.value.elts:
-                if i not in self.whitelist.whitelisted_globals:
-                    self.isSafe = False
-        self.isSafe = True and self.isSafe
-        self.generic_visit(node)
+        self.check_value_safe(node.value)
+        if self.isSafe:
+            self.generic_visit(node)
 
     def visit_AugAssign(self, node):
-        if isinstance(node.value, ast.Constant):
-            if node.target.id not in self.whitelist.whitelisted_globals:
-                self.isSafe = False
-        self.isSafe = True and self.isSafe
-        self.generic_visit(node)
+        self.check_value_safe(node.value)
+        if self.isSafe:
+            self.generic_visit(node)
 
     def visit_AnnAssign(self, node):
-        if isinstance(node.target, ast.Name):
-            if node.target.id not in self.whitelist.whitelisted_globals:
-                self.isSafe = False
-        self.isSafe = True and self.isSafe
+        self.check_value_safe(node.value)
+        if self.isSafe:
+            self.generic_visit(node)
 
-        self.generic_visit(node)
+    def visit_Attribute(self, node):
+        if node.attr not in self.whitelist.attributes:
+            self.isSafe = False
+        if self.isSafe:
+            self.generic_visit(node)
 
     def reset(self):
         self.isSafe = True
+
+    def check_value_safe(self, item):
+        if isinstance(item, ast.Name):
+            if not item.id in self.whitelist.whitelisted_globals:
+                self.isSafe = False
+
 
     # TODO

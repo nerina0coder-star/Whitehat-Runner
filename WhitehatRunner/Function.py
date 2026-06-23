@@ -19,11 +19,18 @@ class Function:
             raise TypeError(f'Expected a callable, given {function.__name__} is not callable')
         if explicit_name is None and function.__name__ == '<lambda>':
             raise TypeError(f'explicit_name must be filled when giving a Lambda function')
-        if explicit_name is not None and getattr(function, '__name__', None) is None:
+        if (explicit_name is None or not explicit_name) and getattr(function, '__name__', None) is None:
             raise TypeError(f'explicit_name must be filled when giving a nameless callable')
         self.name = function.__name__ if explicit_name is None else explicit_name
         self.function = function
+
     def __repr__(self) -> str:
-         return f'<Function {self.name}>'
+        return f'<Function {self.name}>'
+
     def __call__(self, *args, **kwargs):
         return self.function
+
+    def __getattr__(self, name):
+        if name.startswith('__') and not name.endswith('__'):
+            raise AttributeError(f"{name} is a private method")
+        raise AttributeError(f"{name} not found")
