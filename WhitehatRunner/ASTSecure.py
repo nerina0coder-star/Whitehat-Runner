@@ -1,4 +1,6 @@
 import ast, math
+import os
+import time
 from multiprocessing import Array, Process as P
 from typing import List
 from typeguard import typechecked
@@ -7,11 +9,12 @@ from WhitehatRunner import Whitelist
 
 class ASTSecure(ast.NodeTransformer):
     @typechecked
-    def __init__(self, whitelist: Whitelist):
+    def __init__(self, whitelist: Whitelist, max_workers: int|None = None):
         self.whitelist = whitelist
         #self.numbers: Dict[str, int] = {}
         #self.last_assign = ""
         self.isSafe = True
+        self.max_workers = max_workers
 
     @staticmethod
     @typechecked
@@ -22,22 +25,47 @@ class ASTSecure(ast.NodeTransformer):
 
     @typechecked
     def __call__(self, codes: List[str]):
-        max_workers = 3
+        max_workers = self.max_workers
+        if max_workers is None:
+            max_workers = os.cpu_count() - 1
+        if max_workers <= 0:
+            raise RuntimeError('Expected max_workers to be a positive integer, found {} instead.'.format(max_workers))
         length = math.ceil(len(codes) // max_workers) + 1
-        processes = []
+        processes = {}
         arr = Array('b', [-1 for _ in range(max_workers)])
         chunks = [codes[0:length], *[codes[length * x+1:length * x+2] for x in range(max_workers - 1)]]
         worker_id = 0
+        deads = []
+        brk = False
+
+        optimize = len(codes) > 500
 
         for chunk in chunks:
             if not chunk: continue
             process = P(target=ASTSecure.__helper, args=[worker_id, arr, chunk, self.whitelist])
             process.start()
-            processes.append(process)
+            processes.setdefault(worker_id, process)
             worker_id += 1
-        for process in processes:
-            process.join()
-        return False not in arr
+        # Stops early, good for too many lines of code.
+        while True:
+            for id_, process in processes.items():
+                if not process.is_alive():
+                    deads.append(process)
+                    if len(deads) == len(processes):
+                        brk = True
+                        break
+                    continue
+                if arr[id_] == 0:
+                    brk = True
+                    break
+            if brk:
+                break
+            time.sleep(0.1)
+        # Checks if all succeeded.
+        if not all(x.exitcode == 0 for x in processes.values()):
+            raise RuntimeError("Something went wrong while checking exit codes."
+                                 f"Return statuses: {"".join(f"\nprocess {x} exited with {y.exitcode} " for x, y in processes.items() if x.exitcode != 0)}")
+        return 0 not in arr
 
     def visit_Call(self, node):
         if isinstance(node.func, ast.Name) and node.func.id not in self.whitelist.whitelisted_globals:

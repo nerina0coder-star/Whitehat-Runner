@@ -1,10 +1,14 @@
 from typing import List, Dict
 from os import fork
+
+from typeguard import typechecked
+
 from .Function import Function
 
 
 class Whitelist:
-    
+
+    @typechecked
     def __init__(self, functions: List[Function] | Function):
         """
         Creates a new instance of Whitelist.
@@ -29,6 +33,7 @@ class Whitelist:
         """
         return self.functions[self.names.index(name)] if name in self.names else None
 
+    @typechecked
     def whitelist(self, functions: Function|List[Function], ignore_present: bool = False):
         """
         Adds whitelisted functions to the whitelist.
@@ -51,6 +56,8 @@ class Whitelist:
         self.functions.extend(functions)
         self.names.extend(names)
         self.__whitelisted_globals_update__()
+
+    @typechecked
     def whitelist_imports(self, the_imports: str, the_froms: str | None = None, the_as: str | None = None):
         """
         Whitelists imports of different modules, and limit the alias.
@@ -65,6 +72,7 @@ class Whitelist:
         if the_as is not None and the_as:
             all_as = list(set(i for i in the_as.split(',') if i not in self.aliases))
             self.aliases.extend(all_as)
+    @typechecked
     def blacklist_imports(self, the_imports: str, the_froms: str | None = None, the_as: str | None = None):
         blacklisting_imports = the_imports.split(',') if the_imports else []
         blacklisting_imports.extend(the_froms) if the_froms and the_froms is not None else []
@@ -75,7 +83,9 @@ class Whitelist:
         for i in removing_as:
             if i in self.aliases:
                 self.aliases.remove(i)
-    def whitelist_attribute(self, attr):
+
+    @typechecked
+    def whitelist_attribute(self, attr: str):
         blocked = [
             "__builtins__",
             "__builtin__",
@@ -97,6 +107,7 @@ class Whitelist:
         self.attributes.extend(attrs)
 
 
+    @typechecked
     def blacklist(self, functions: Function|List[Function], ignore_absent: bool = False):
         """
         Blacklists whitelisted functions.
@@ -115,6 +126,8 @@ class Whitelist:
         self.functions = list(filter(lambda x: x not in functions, self.functions))
         self.names = list(filter(lambda x: x not in names, self.names))
         self.__whitelisted_globals_update__()
+
+    @typechecked
     def is_allowed(self, name: str):
         """
         Checks if the whitelisted function is whitelisted.
@@ -122,6 +135,8 @@ class Whitelist:
             name (str): Name of the function
         """
         return name in self.names
+
+    @typechecked
     def ally(self):
         """
         Gets all whitelisted functions.

@@ -1,9 +1,13 @@
 from typing import Callable
 
+from typeguard import typechecked
+
 
 class Function:
+
+    @typechecked
     def __init__(self,
-                 function: Callable, explicit_name: str = None) -> None:
+                 function: Callable, explicit_name: str | None = None) -> None:
         """
         Creates a function to call across files.
 
@@ -13,10 +17,6 @@ class Function:
         Example:
             Function('calc', {'operation', str}, original_calc)
         """
-        if function is None:
-            raise TypeError(f'Expected a value, given None: function is None')
-        if not isinstance(function, Callable):
-            raise TypeError(f'Expected a callable, given {function.__name__} is not callable')
         if explicit_name is None and function.__name__ == '<lambda>':
             raise TypeError(f'explicit_name must be filled when giving a Lambda function')
         if (explicit_name is None or not explicit_name) and getattr(function, '__name__', None) is None:
@@ -27,10 +27,5 @@ class Function:
     def __repr__(self) -> str:
         return f'<Function {self.name}>'
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self):
         return self.function
-
-    def __getattr__(self, name):
-        if name.startswith('__') and not name.endswith('__'):
-            raise AttributeError(f"{name} is a private method")
-        raise AttributeError(f"{name} not found")

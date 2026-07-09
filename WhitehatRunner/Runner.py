@@ -1,8 +1,16 @@
-import ast
 import subprocess
 import time
 from pathlib import Path
-from typing import overload
+
+import psutil
+import re2
+from typeguard import typechecked
+
+from .ASTSecure import ASTSecure
+from .Whitelist import Whitelist
+import subprocess
+import time
+from pathlib import Path
 
 import psutil
 import re2
@@ -10,19 +18,22 @@ import re2
 from .ASTSecure import ASTSecure
 from .Whitelist import Whitelist
 
+
 class Runner:
     """
     The class that extracts and runs code from the given input.
     """
 
-    def __init__(self, whitelist: Whitelist):
+    @typechecked
+    def __init__(self, whitelist: Whitelist, max_workers: int | None = None):
         """Accepts a whitelist class for accepting/denying user input"""
         self.whitelist = whitelist
-        self.__secure__ = ASTSecure(whitelist)
+        self.__secure__ = ASTSecure(whitelist, max_workers)
     #def __getattr__(self, name):
     # Found out what it does, python is truly not secure.
     # Well, then please be moral and don't touch these for your own sake.
 
+    @typechecked
     def __getcode(self, txt: str):
         """Extracts and returns the embedded code."""
         pattern = re2.compile(r'\[start\[.*?\]end\]')
@@ -30,10 +41,11 @@ class Runner:
         lst = list(matches) if matches is not None else None
         out = None
         if lst is not None:
-            out = [i[7:-5].strip() for i in lst]
+            out = [i[7:-5].strip().replace(r'\[start\[', '[start[').replace(r'\]end\]', ']end]') for i in lst]
         return out
 
-    def __base_run(self, path, raw):
+    @typechecked
+    def __base_run(self, path: str|None, raw: str|None):
         self.__secure__.reset()
         if path is None and raw is None:
             raise ValueError('Both path and raw are None.')
@@ -55,7 +67,8 @@ class Runner:
         del txt
         return codes
 
-    def runny(self, path: str = None, raw: str = None):
+    @typechecked
+    def runny(self, path: str | None = None, raw: str | None = None):
         """Writes to a file and extracts the code that's inside a file/string.
         Args:
              path(str): A path to the file to read.
@@ -81,7 +94,10 @@ class Runner:
         except Exception as e:
             raise RuntimeError(f'An error acquired when running:\n{str(e)}')
 
-    def runner(self, path: str = None, raw: str = None, output_path: str = None, max_cpu: int = None, max_cpu_cores: int = None, max_ram: int = None):
+    @typechecked
+    def runner(self, path: str | None = None, raw: str | None = None,
+               output_path: str | None = None, max_cpu: int | None = None,
+               max_cpu_cores: int | None = None, max_ram: int | None = None):
         """Writes to a file and extracts the code that's inside a file/string.
         Args:
              path(str): A path to the file to read.
