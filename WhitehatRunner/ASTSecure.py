@@ -1,15 +1,43 @@
-import ast
-from typing import Dict
-
+import ast, math
+from multiprocessing import Array, Process as P
+from typing import List
+from typeguard import typechecked
 from WhitehatRunner import Whitelist
 
 
 class ASTSecure(ast.NodeTransformer):
+    @typechecked
     def __init__(self, whitelist: Whitelist):
         self.whitelist = whitelist
         #self.numbers: Dict[str, int] = {}
         #self.last_assign = ""
         self.isSafe = True
+
+    @staticmethod
+    @typechecked
+    def __helper(number, arr, chunk: list, whitelist: Whitelist):
+        safety_checker = ASTSecure(whitelist)
+        safety_checker.visit(ast.parse("".join(f"{x}\n" for x in chunk)))
+        arr[number] = 1 if safety_checker.isSafe else 0
+
+    @typechecked
+    def __call__(self, codes: List[str]):
+        max_workers = 3
+        length = math.ceil(len(codes) // max_workers) + 1
+        processes = []
+        arr = Array('b', [-1 for _ in range(max_workers)])
+        chunks = [codes[0:length], *[codes[length * x+1:length * x+2] for x in range(max_workers - 1)]]
+        worker_id = 0
+
+        for chunk in chunks:
+            if not chunk: continue
+            process = P(target=ASTSecure.__helper, args=[worker_id, arr, chunk, self.whitelist])
+            process.start()
+            processes.append(process)
+            worker_id += 1
+        for process in processes:
+            process.join()
+        return False not in arr
 
     def visit_Call(self, node):
         if isinstance(node.func, ast.Name) and node.func.id not in self.whitelist.whitelisted_globals:

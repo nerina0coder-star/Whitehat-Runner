@@ -9,9 +9,6 @@ import re2
 
 from .ASTSecure import ASTSecure
 from .Whitelist import Whitelist
-# from .CodeCheck import check
-# TODO The CodeCheck is imperfect
-
 
 class Runner:
     """
@@ -22,10 +19,9 @@ class Runner:
         """Accepts a whitelist class for accepting/denying user input"""
         self.whitelist = whitelist
         self.__secure__ = ASTSecure(whitelist)
-    def __getattr__(self, name):
-        if name.startswith('__') and not name.endswith('__'):
-            raise AttributeError(f"{name} is a private method")
-        raise AttributeError(f"{name} not found")
+    #def __getattr__(self, name):
+    # Found out what it does, python is truly not secure.
+    # Well, then please be moral and don't touch these for your own sake.
 
     def __getcode(self, txt: str):
         """Extracts and returns the embedded code."""
@@ -74,16 +70,16 @@ class Runner:
         codes = self.__base_run(path, raw)
 
         # Executing
-        for code in codes:
-            try:
-                self.__secure__.visit(ast.parse(code))
-                # check(code) and
-                if self.__secure__.isSafe:
+        try:
+            isSafe = self.__secure__(codes)
+            # check(code) and
+            if isSafe:
+                for code in codes:
                     yield lambda doeval: exec(code, self.whitelist.whitelisted_globals) if not doeval else eval(code, self.whitelist.whitelisted_globals)
-                else:
-                    raise RuntimeError(f'Call {code} is prohibited')
-            except Exception as e:
-                raise RuntimeError(f'An error acquired when running {code}:\n{str(e)}')
+            else:
+                raise RuntimeError(f'Call is prohibited')
+        except Exception as e:
+            raise RuntimeError(f'An error acquired when running:\n{str(e)}')
 
     def runner(self, path: str = None, raw: str = None, output_path: str = None, max_cpu: int = None, max_cpu_cores: int = None, max_ram: int = None):
         """Writes to a file and extracts the code that's inside a file/string.
@@ -107,25 +103,24 @@ class Runner:
         output = None
         out = ""
         max_cpu_percentage = 0
-        if output_path is not None:
-            output = open(output_path, 'w')
-            if max_cpu is None or max_ram is None or max_cpu_cores is None:
-                raise ValueError(
-                    'Either/all max_cpu or max_ram or max_cpu_cores are None when output directory is given.')
-            max_cpu_percentage = max_cpu_cores * 100
+        
+        output = open(output_path, 'w')
+        if max_cpu is None or max_ram is None or max_cpu_cores is None:
+            raise ValueError(
+               'Either/all max_cpu or max_ram or max_cpu_cores are None when using rumner.'
+               )
+        max_cpu_percentage = max_cpu_cores * 100
         codes = self.__base_run(path, raw)
         # Validation
-        for code in codes:
-            try:
-                self.__secure__.visit(ast.parse(code))
-                # check(code) and
-                if self.__secure__.isSafe:
-                    out += "\n" + code
-                else:
-                    raise RuntimeError(f'Call {code} is prohibited')
-                self.__secure__.reset()
-            except Exception as e:
-                raise RuntimeError(f'An error acquired when running {code}:\n{str(e)}')
+        try:
+            isSafe = self.__secure__(codes)
+            # check(code) and
+            if isSafe:
+                out = "".join(f"{code}\n" for code in codes)
+            else:
+                raise RuntimeError(f'Call is prohibited')
+        except Exception as e:
+            raise RuntimeError(f'An error acquired when running:\n{str(e)}')
         output.write(out)
         output.flush()
         output.close()

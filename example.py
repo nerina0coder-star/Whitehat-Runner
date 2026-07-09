@@ -11,7 +11,7 @@ while not stop:
     except Exception as e:
         answer = "\n" + str(e)
     print(f'Function answered with {answer}')
-    if input('Continue? (y/n) ').lower() == 'y':
+    if input('Continue? (y/n) ').lower() == 'n':
         stop = True
 func = Function(print)
 whitelist = Whitelist(func)

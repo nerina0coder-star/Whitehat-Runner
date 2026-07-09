@@ -8,7 +8,7 @@
 <h1 style='font-size: 3rem'>
 WARNING: THIS BRANCH IS IN DEVELOPMENT, YOU MAY TEST BUT PLEASE DO NOT USE THIS IN ANY REAL-WORLD CONTEXT UNTIL VERSION 0.0.1 Release.
 IF YOU ARE GOING TO USE THE GIVEN CODE, YOU CAN USE IT WITH DOCKER ON TRUSTED USER INPUT.
-THAT IS THE REASON THE REPOSITORY HAS NO TAGS YET.
+RELEASE IS NEAR.
 </h1>
 
 
@@ -29,7 +29,7 @@ while not stop:
     except Exception as e:
         answer = "\n" + str(e)
     print(f'Function answered with {answer}')
-    if input('Continue? (y/n) ').lower() == 'y':
+    if input('Continue? (y/n) ').lower() == 'n':
         stop = True
 func = Function(print)
 whitelist = Whitelist(func)
@@ -40,4 +40,6 @@ runner.runner(raw="[start[ print('Hello!') ]end]", output_path='output.py', max_
 - A sandbox to run filtered python code from, filtering and running code using a whitelist mechanism.
 - A connection creator between files and the running python process.
 - A fast way to run functions from external files safely.
-## Expected new version time - Undefined
+
+## What changed?
+- ASTSecure became greedy, but fast!
