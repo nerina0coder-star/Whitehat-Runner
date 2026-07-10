@@ -22,7 +22,8 @@ class Runner:
         """Accepts a whitelist class for accepting/denying user input"""
         self.whitelist = whitelist
         self.__secure__ = ASTSecure(whitelist, max_workers)
-    #def __getattr__(self, name):
+
+    # def __getattr__(self, name):
     # Found out what it does, python is truly not secure.
     # Well, then please be moral and don't touch these for your own sake.
 
@@ -38,7 +39,7 @@ class Runner:
         return out
 
     @typechecked
-    def __base_run(self, path: str|None, raw: str|None):
+    def __base_run(self, path: str | None, raw: str | None):
         self.__secure__.reset()
         if path is None and raw is None:
             raise ValueError('Both path and raw are None.')
@@ -85,7 +86,8 @@ class Runner:
                     def func(doeval: bool) -> Any | None:
                         return exec(code, self.whitelist.whitelisted_globals) \
                             if not doeval else \
-                        eval(code, self.whitelist.whitelisted_globals)
+                            eval(code, self.whitelist.whitelisted_globals)
+
                     # --------------------
                     yield func
                     del func
@@ -119,15 +121,15 @@ class Runner:
         output = None
         out = ""
         max_cpu_percentage = 0
-        
+
         output = open(output_path, 'w')
         if max_cpu_cores is None:
             max_cpu_cores = os.cpu_count() - 1
 
         if not all(i is not None and i > 0 for i in [max_cpu, max_cpu_cores, max_ram]):
             raise ValueError(
-               'Either/all max_cpu or max_ram or max_cpu_cores are None/under 1 when using runner.'
-               )
+                'Either/all max_cpu or max_ram or max_cpu_cores are None/under 1 when using runner.'
+            )
         max_cpu_percentage = max_cpu_cores * 100
         codes = self.__base_run(path, raw)
         # Validation
@@ -165,7 +167,6 @@ class Runner:
                 if cpu_times > max_cpu or cpu_percentage > max_cpu_percentage:
                     self.__killproc(all_proc)
                     break
-
 
                 ram_usage = 0
                 for i in all_proc:

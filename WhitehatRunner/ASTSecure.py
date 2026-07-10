@@ -1,18 +1,21 @@
-import ast, math
+import ast
+import math
 import os
 import time
 from multiprocessing import Array, Process as P
 from typing import List
+
 from typeguard import typechecked
+
 from WhitehatRunner import Whitelist
 
 
 class ASTSecure(ast.NodeTransformer):
     @typechecked
-    def __init__(self, whitelist: Whitelist, max_workers: int|None = None):
+    def __init__(self, whitelist: Whitelist, max_workers: int | None = None):
         self.whitelist = whitelist
-        #self.numbers: Dict[str, int] = {}
-        #self.last_assign = ""
+        # self.numbers: Dict[str, int] = {}
+        # self.last_assign = ""
         self.isSafe = True
         self.max_workers = max_workers
 
@@ -33,7 +36,7 @@ class ASTSecure(ast.NodeTransformer):
         length = math.ceil(len(codes) // max_workers) + 1
         processes = {}
         arr = Array('b', [-1 for _ in range(max_workers)])
-        chunks = [codes[0:length], *[codes[length * x+1:length * x+2] for x in range(max_workers - 1)]]
+        chunks = [codes[0:length], *[codes[length * x + 1:length * x + 2] for x in range(max_workers - 1)]]
         worker_id = 0
         deads = []
         brk = False
@@ -64,7 +67,7 @@ class ASTSecure(ast.NodeTransformer):
         # Checks if all succeeded.
         if not all(x.exitcode == 0 for x in processes.values()):
             raise RuntimeError("Something went wrong while checking exit codes."
-                                 f"Return statuses: {"".join(f"\nprocess {x} exited with {y.exitcode} " for x, y in processes.items() if x.exitcode != 0)}")
+                               f"Return statuses: {"".join(f"\nprocess {x} exited with {y.exitcode} " for x, y in processes.items() if x.exitcode != 0)}")
         return 0 not in arr
 
     def visit_Call(self, node):
@@ -120,7 +123,7 @@ class ASTSecure(ast.NodeTransformer):
                 if node.left.value > 10 or node.right.value > 10:
                     self.isSafe = False
         if self.isSafe:
-            self.generic_visit(node) # TODO
+            self.generic_visit(node)  # TODO
 
     def reset(self):
         self.isSafe = True
@@ -129,6 +132,5 @@ class ASTSecure(ast.NodeTransformer):
         if isinstance(item, ast.Name):
             if not item.id in self.whitelist.whitelisted_globals:
                 self.isSafe = False
-
 
     # TODO

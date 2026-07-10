@@ -11,6 +11,7 @@ class Function:
     def define(explicit_name: str | None = None) -> Callable[[Callable], "Function"]:
         def decorator(function: Callable) -> "Function":
             return Function(function=function, explicit_name=explicit_name)
+
         return decorator
 
     @typechecked
