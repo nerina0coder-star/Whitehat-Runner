@@ -25,7 +25,7 @@ stop = False
 while not stop:
     try:
         for function in runner.runny(raw=f"[start[ {input('write a function to parse...\n')} ]end]"):
-            answer = function(doeval=True)
+            answer = function(doeval=True)()
     except Exception as e:
         answer = "\n" + str(e)
     print(f'Function answered with {answer}')

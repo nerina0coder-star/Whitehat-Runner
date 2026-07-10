@@ -1,19 +1,12 @@
+import os
 import subprocess
 import time
 from pathlib import Path
+from typing import Any
 
 import psutil
 import re2
 from typeguard import typechecked
-
-from .ASTSecure import ASTSecure
-from .Whitelist import Whitelist
-import subprocess
-import time
-from pathlib import Path
-
-import psutil
-import re2
 
 from .ASTSecure import ASTSecure
 from .Whitelist import Whitelist
@@ -76,8 +69,8 @@ class Runner:
         Raises:
             ValueError: Both path and raw are None.
             FileNotFoundError: File at path doesn't exist.
-            RuntimeError: An error occurred when running x: error
-            RuntimeError: Call x is prohibited.
+            RuntimeError: An error occurred when running: error
+            RuntimeError: Call is prohibited.
         """
         # code
         codes = self.__base_run(path, raw)
@@ -88,7 +81,14 @@ class Runner:
             # check(code) and
             if isSafe:
                 for code in codes:
-                    yield lambda doeval: exec(code, self.whitelist.whitelisted_globals) if not doeval else eval(code, self.whitelist.whitelisted_globals)
+                    # --------------------
+                    def func(doeval: bool) -> Any | None:
+                        return exec(code, self.whitelist.whitelisted_globals) \
+                            if not doeval else \
+                        eval(code, self.whitelist.whitelisted_globals)
+                    # --------------------
+                    yield func
+                    del func
             else:
                 raise RuntimeError(f'Call is prohibited')
         except Exception as e:
@@ -109,8 +109,8 @@ class Runner:
         Raises:
             ValueError: Both path and raw are None.
             FileNotFoundError: File at path doesn't exist.
-            RuntimeError: An error occurred when running x: error
-            RuntimeError: Call x is prohibited.
+            RuntimeError: An error occurred when running: error
+            RuntimeError: Call is prohibited.
         """
         # Correcting user input
         if output_path is not None and not Path(output_path).parent.exists():
@@ -121,9 +121,12 @@ class Runner:
         max_cpu_percentage = 0
         
         output = open(output_path, 'w')
-        if max_cpu is None or max_ram is None or max_cpu_cores is None:
+        if max_cpu_cores is None:
+            max_cpu_cores = os.cpu_count() - 1
+
+        if not all(i is not None and i > 0 for i in [max_cpu, max_cpu_cores, max_ram]):
             raise ValueError(
-               'Either/all max_cpu or max_ram or max_cpu_cores are None when using rumner.'
+               'Either/all max_cpu or max_ram or max_cpu_cores are None/under 1 when using runner.'
                )
         max_cpu_percentage = max_cpu_cores * 100
         codes = self.__base_run(path, raw)
@@ -145,6 +148,10 @@ class Runner:
         try:
             while p.is_running():
                 all_proc = [p] + p.children(recursive=True)
+
+                for proc in all_proc:
+                    if proc.status() == psutil.STATUS_ZOMBIE:
+                        self.__killproc([proc])
 
                 cpu_times = 0
                 cpu_percentage = 0
@@ -172,7 +179,7 @@ class Runner:
                     break
                 if not p.is_running():
                     break
-                time.sleep(1)
+                time.sleep(0.05)
         except psutil.NoSuchProcess:
             pass
         return
