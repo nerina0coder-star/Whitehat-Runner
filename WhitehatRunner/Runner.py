@@ -18,10 +18,10 @@ class Runner:
     """
 
     @typechecked
-    def __init__(self, whitelist: Whitelist, max_workers: int | None = None):
+    def __init__(self, whitelist: Whitelist, max_workers: int | None = None, force_optimize=False):
         """Accepts a whitelist class for accepting/denying user input"""
         self.whitelist = whitelist
-        self.__secure__ = ASTSecure(whitelist, max_workers)
+        self.__secure__ = ASTSecure(whitelist, max_workers, force_optimize)
 
     # def __getattr__(self, name):
     # Found out what it does, python is truly not secure.

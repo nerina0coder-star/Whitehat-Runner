@@ -12,12 +12,13 @@ from WhitehatRunner import Whitelist
 
 class ASTSecure(ast.NodeTransformer):
     @typechecked
-    def __init__(self, whitelist: Whitelist, max_workers: int | None = None):
+    def __init__(self, whitelist: Whitelist, max_workers: int | None = None, force_optimize: bool = True):
         self.whitelist = whitelist
         # self.numbers: Dict[str, int] = {}
         # self.last_assign = ""
         self.isSafe = True
         self.max_workers = max_workers
+        self.force_optimize = force_optimize
 
     @staticmethod
     @typechecked
@@ -42,7 +43,7 @@ class ASTSecure(ast.NodeTransformer):
         deads = []
         brk = False
 
-        optimize = len(codes) > 500
+        optimize = len(codes) > 100 if not self.force_optimize else True
 
         for chunk in chunks:
             if not chunk: continue
