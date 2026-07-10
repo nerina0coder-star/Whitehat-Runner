@@ -79,7 +79,7 @@ class Whitelist:
         blocked = ["os", "subprocess", "sys", "pty", "Popen", "CPython", "cffi", "ctypes"]
         the_imports_lst = the_imports.split(',') if the_imports else []
         if the_froms is not None and the_froms:
-            the_imports_lst.extend(the_froms)
+            the_imports_lst.extend(the_froms.split(','))
         all_imports = list(
             dict.fromkeys([port for port in the_imports_lst if port not in blocked and port not in self.imports]))
         self.imports.extend(all_imports)
@@ -90,7 +90,7 @@ class Whitelist:
     @typechecked
     def blacklist_imports(self, the_imports: str, the_froms: str | None = None, the_as: str | None = None):
         blacklisting_imports = the_imports.split(',') if the_imports else []
-        blacklisting_imports.extend(the_froms) if the_froms and the_froms is not None else []
+        blacklisting_imports.extend(the_froms.split(',')) if the_froms and the_froms is not None else []
         for i in blacklisting_imports:
             if i in self.imports:
                 self.imports.remove(i)

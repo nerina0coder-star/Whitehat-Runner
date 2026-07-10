@@ -77,8 +77,8 @@ class Runner:
         codes = self.__base_run(path, raw)
 
         # Executing
+        isSafe, arr = self.__secure__(codes)
         try:
-            isSafe = self.__secure__(codes)
             # check(code) and
             if isSafe:
                 for code in codes:
@@ -87,12 +87,14 @@ class Runner:
                         return exec(code, self.whitelist.whitelisted_globals) \
                             if not doeval else \
                             eval(code, self.whitelist.whitelisted_globals)
+                    setattr(func, "__name__", code)
 
                     # --------------------
                     yield func
                     del func
             else:
-                raise RuntimeError(f'Call is prohibited')
+                raise RuntimeError(f'Call is prohibited. Extracted codes: {"".join(f"\n{x}" for x in codes)}\n'
+                                   f'The array that detected the behavor of the code reported: {"".join(("safe" if x == 1 else "dangerous") + " " for x in arr)}')
         except Exception as e:
             raise RuntimeError(f'An error acquired when running:\n{str(e)}')
 
@@ -133,15 +135,16 @@ class Runner:
         max_cpu_percentage = max_cpu_cores * 100
         codes = self.__base_run(path, raw)
         # Validation
+        isSafe, arr = self.__secure__(codes)
         try:
-            isSafe = self.__secure__(codes)
             # check(code) and
             if isSafe:
                 out = "".join(f"{code}\n" for code in codes)
             else:
-                raise RuntimeError(f'Call is prohibited')
+                raise RuntimeError(f'Call is prohibited. Extracted codes: {"\n".join(f"{x}\n" for x in codes)}')
         except Exception as e:
-            raise RuntimeError(f'An error acquired when running:\n{str(e)}')
+            raise RuntimeError(f'Call is prohibited. Extracted codes: {"\n".join(f"\n{x}" for x in codes)}\n'
+                               f'The array that detected the behavor of the code reported: {"".join(("safe" if x == 1 else "dangerous") + " " for x in arr)}')
         output.write(out)
         output.flush()
         output.close()

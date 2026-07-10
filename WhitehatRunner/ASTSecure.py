@@ -33,6 +33,7 @@ class ASTSecure(ast.NodeTransformer):
             max_workers = os.cpu_count() - 1
         if max_workers <= 0:
             raise RuntimeError('Expected max_workers to be a positive integer, found {} instead.'.format(max_workers))
+        codes = list(filter(lambda code: True if code.strip() else False, codes))
         length = math.ceil(len(codes) // max_workers) + 1
         processes = {}
         arr = Array('b', [-1 for _ in range(max_workers)])
@@ -49,8 +50,11 @@ class ASTSecure(ast.NodeTransformer):
             process.start()
             processes.setdefault(worker_id, process)
             worker_id += 1
+        if not optimize:
+            for process in processes.values():
+                process.join()
         # Stops early, good for too many lines of code.
-        while True:
+        while True and optimize:
             for id_, process in processes.items():
                 if not process.is_alive():
                     deads.append(process)
@@ -67,8 +71,8 @@ class ASTSecure(ast.NodeTransformer):
         # Checks if all succeeded.
         if not all(x.exitcode == 0 for x in processes.values()):
             raise RuntimeError("Something went wrong while checking exit codes."
-                               f"Return statuses: {"".join(f"\nprocess {x} exited with {y.exitcode} " for x, y in processes.items() if x.exitcode != 0)}")
-        return 0 not in arr
+                               f"Return statuses: {"".join(f"\nprocess {x} exited with {y.exitcode} " for x, y in processes.items() if y.exitcode != 0)}")
+        return 0 not in arr, list(arr)
 
     def visit_Call(self, node):
         if isinstance(node.func, ast.Name) and node.func.id not in self.whitelist.whitelisted_globals:
@@ -81,6 +85,7 @@ class ASTSecure(ast.NodeTransformer):
     def visit_ImportFrom(self, node):
         if node.module not in self.whitelist.imports:
             self.isSafe = False
+
         if self.isSafe:
             self.generic_visit(node)
 
@@ -110,7 +115,7 @@ class ASTSecure(ast.NodeTransformer):
         if self.isSafe:
             self.generic_visit(node)
 
-    def visit_Attribute(self, node):
+    def visit_Attribute(self, node: ast.Attribute):
         if node.attr not in self.whitelist.attributes:
             self.isSafe = False
         if self.isSafe:
