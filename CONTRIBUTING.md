@@ -1,6 +1,6 @@
 # Contributing to Whitehat Runner
 
-Thank you for your interest! This is a niche regex project, but improvements are welcome.
+Thank you for your interest! This is an important security project, improvements are welcome.
 
 ## How to help
 
