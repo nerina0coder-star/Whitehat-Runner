@@ -1,3 +1,4 @@
+import datetime
 import os
 import subprocess
 import time
@@ -6,7 +7,7 @@ from typing import Any
 
 import psutil
 import re2
-from typeguard import typechecked
+
 
 from .ASTSecure import ASTSecure
 from .Whitelist import Whitelist
@@ -17,7 +18,7 @@ class Runner:
     The class that extracts and runs code from the given input.
     """
 
-    @typechecked
+
     def __init__(self, whitelist: Whitelist, max_workers: int | None = None, force_optimize=False):
         """Accepts a whitelist class for accepting/denying user input"""
         self.whitelist = whitelist
@@ -27,7 +28,7 @@ class Runner:
     # Found out what it does, python is truly not secure.
     # Well, then please be moral and don't touch these for your own sake.
 
-    @typechecked
+
     def __getcode(self, txt: str):
         """Extracts and returns the embedded code."""
         pattern = re2.compile(r'\[start\[.*?\]end\]')
@@ -38,7 +39,7 @@ class Runner:
             out = [i[7:-5].strip().replace(r'\[start\[', '[start[').replace(r'\]end\]', ']end]') for i in lst]
         return out
 
-    @typechecked
+
     def __base_run(self, path: str | None, raw: str | None):
         self.__secure__.reset()
         if path is None and raw is None:
@@ -61,7 +62,7 @@ class Runner:
         del txt
         return codes
 
-    @typechecked
+
     def runny(self, path: str | None = None, raw: str | None = None):
         """Writes to a file and extracts the code that's inside a file/string.
         Args:
@@ -84,9 +85,9 @@ class Runner:
                 for code in codes:
                     # --------------------
                     def func(doeval: bool) -> Any | None:
-                        return exec(code, self.whitelist.whitelisted_globals) \
+                        return exec(code, self.whitelist._whitelisted_globals) \
                             if not doeval else \
-                            eval(code, self.whitelist.whitelisted_globals)
+                            eval(code, self.whitelist._whitelisted_globals)
                     setattr(func, "__name__", code)
 
                     # --------------------
@@ -94,11 +95,11 @@ class Runner:
                     del func
             else:
                 raise RuntimeError(f'Call is prohibited. Extracted codes: {"".join(f"\n{x}" for x in codes)}\n'
-                                   f'The array that detected the behavor of the code reported: {"".join(("safe" if x == 1 else "dangerous") + " " for x in arr)}')
+                                   f'The array that detected the behavor of the code reported: {"".join(("safe" if x == 1 else "dangerous" if x == 0 else "NaN") + " " for x in arr)}')
         except Exception as e:
             raise RuntimeError(f'An error acquired when running:\n{str(e)}')
 
-    @typechecked
+
     def runner(self, path: str | None = None, raw: str | None = None,
                output_path: str | None = None, max_cpu: int | None = None,
                max_cpu_cores: int | None = None, max_ram: int | None = None):
@@ -119,6 +120,8 @@ class Runner:
         # Correcting user input
         if output_path is not None and not Path(output_path).parent.exists():
             raise FileNotFoundError(f'The output path does not exist {output_path} doesn\'t exist')
+        elif output_path is None:
+            output_path = 'Whitehat-runner-output/output' + datetime.datetime.now(datetime.UTC).isoformat() + '.py'
         # Output
         output = None
         out = ""
@@ -144,7 +147,7 @@ class Runner:
                 raise RuntimeError(f'Call is prohibited. Extracted codes: {"\n".join(f"{x}\n" for x in codes)}')
         except Exception as e:
             raise RuntimeError(f'Call is prohibited. Extracted codes: {"\n".join(f"\n{x}" for x in codes)}\n'
-                               f'The array that detected the behavor of the code reported: {"".join(("safe" if x == 1 else "dangerous") + " " for x in arr)}')
+                               f'The array that detected the behavor of the code reported: {"".join(("safe" if x == 1 else "dangerous" if x == 0 else "NaN") + " " for x in arr)}')
         output.write(out)
         output.flush()
         output.close()

@@ -1,20 +1,20 @@
 import keyword
 from typing import Callable
 
-from typeguard import typechecked
+
 
 
 class Function:
 
     @staticmethod
-    @typechecked
+    
     def define(explicit_name: str | None = None) -> Callable[[Callable], "Function"]:
         def decorator(function: Callable) -> "Function":
             return Function(function=function, explicit_name=explicit_name)
 
         return decorator
 
-    @typechecked
+    
     def __init__(self,
                  function: Callable,
                  explicit_name: str | None = None) -> None:
@@ -58,7 +58,7 @@ class Function:
             raise TypeError(f'explicit_name cannot be a keyword and must be an identifier')
 
     @staticmethod
-    @typechecked
+    
     def __wrap__(function_obj: "Function", func: Callable):
         for i in ('__module__', '__name__', '__qualname__', '__doc__', '__annotations__'):
             method = getattr(func, i, None)

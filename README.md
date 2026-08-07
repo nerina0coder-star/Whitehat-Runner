@@ -3,7 +3,7 @@
 ![Author Mail](https://img.shields.io/badge/Email-github.py.coder%40gmail.com.-red?logo=github)
 ![Version](https://img.shields.io/badge/Version-v0.0.1--Beta-orange?logo=github)
 ![License](https://img.shields.io/badge/License-MIT-red?logo=github)
-![Usablity](https://img.shields.io/badge/Usablity-Low-orange)
+![Usablity](https://img.shields.io/badge/Usablity-Medium-orange)
 
 <h1 style='font-size: 3rem'>
 WARNING: THIS BRANCH IS IN DEVELOPMENT, YOU MAY TEST BUT PLEASE DO NOT USE THIS IN ANY REAL-WORLD CONTEXT UNTIL VERSION 0.0.1 Release.
