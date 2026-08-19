@@ -1,5 +1,5 @@
+from collections.abc import Callable
 from os import fork
-from typing import List, Dict
 
 
 
@@ -9,7 +9,7 @@ from .Function import Function
 class Whitelist:
 
     
-    def __init__(self, functions: List[Function] | Function):
+    def __init__(self, functions: list[Function] | Function):
         """
         Creates a new instance of Whitelist.
         Args:
@@ -18,7 +18,7 @@ class Whitelist:
         if isinstance(functions, Function):
             functions = [functions]
         functions = list(dict.fromkeys(functions))
-        self.functions: List[Function] = [function for function in functions if
+        self.functions: list[Function] = [function for function in functions if
                                           function is not fork and function is not None]
         self._names = [i.name for i in functions if i.name is not None]
         self._whitelisted_globals = {}
@@ -39,7 +39,7 @@ class Whitelist:
         """
         Gets a whitelisted function by its name.
         Args:
-            name (str): Name of the function
+            name_or_index (str): Name of the function
         """
         if isinstance(name_or_index, int):
             return self.functions[name_or_index]
@@ -52,15 +52,18 @@ class Whitelist:
         return self.ally()
 
     
-    def whitelist(self, functions: Function | List[Function], ignore_present: bool = False):
+    def whitelist(self, functions: Function | list[Function | Callable] | Callable, ignore_present: bool = False):
         """
         Adds whitelisted functions to the whitelist.
         Args:
-            functions (List[Function]): List of functions to whitelist
+            functions (List[Function]): List of "Whitehat Runner Function"-s to whitelist.
             ignore_present (bool, optional): Whether to ignore existing functions. Defaults to False.
         """
         if isinstance(functions, Function):
             functions = [functions]
+
+        if not all(isinstance(i, Function) for i in functions):
+            raise ValueError("Expected a function or a list of functions.")
 
         functions = list(dict.fromkeys(functions))
         names = []
@@ -107,7 +110,7 @@ class Whitelist:
                 self._aliases.remove(i)
 
     
-    def whitelist_attribute(self, attr: Dict[str, List[str]]):
+    def whitelist_attribute(self, attr: dict[str, list[str]]):
         blocked = [
             "__builtins__",
             "__builtin__",
@@ -129,11 +132,11 @@ class Whitelist:
                 self._attributes[k] = v
 
     
-    def blacklist(self, functions: Function | List[Function], ignore_absent: bool = False):
+    def blacklist(self, functions: Function | list[Function | Callable] | Callable, ignore_absent: bool = False):
         """
         Blacklists whitelisted functions.
         Args:
-            functions (List[Function]): List of functions to blacklist
+            functions (List[Function]): List of "Whitehat Runner Function"-s to blacklist
             ignore_absent (bool, optional): Whether to ignore existing functions. Defaults to False.
         """
 

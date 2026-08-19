@@ -3,7 +3,6 @@ import math
 import os
 import time
 from multiprocessing import Array, Process
-from typing import List
 
 from WhitehatRunner import Whitelist
 
@@ -11,9 +10,10 @@ from WhitehatRunner import Whitelist
 class ASTSecure(ast.NodeTransformer):
 
     def __init__(self, whitelist: Whitelist, max_workers: int | None = None, force_optimize: bool = True):
+        self.next_name_safe = False
         self.last_assign = None
         self.whitelist = whitelist
-        # self.numbers: Dict[str, int] = {}
+        self.numbers: dict[str, int] = {}
         self.made: list[str] = []
         self.isSafe = True
         self.max_workers = max_workers
@@ -25,7 +25,7 @@ class ASTSecure(ast.NodeTransformer):
         safety_checker.visit(ast.parse("".join(f"{x}\n" for x in chunk)))
         arr[number] = 1 if safety_checker.isSafe else 0
 
-    def __call__(self, codes: List[str]) -> tuple[bool, list]:
+    def __call__(self, codes: list[str]) -> tuple[bool, list]:
         """
         Checks the given codes for bad intend.
         """
@@ -74,10 +74,12 @@ class ASTSecure(ast.NodeTransformer):
         if not all(x.exitcode == 0 for x in processes.values()):
             raise RuntimeError("Something went wrong while checking exit codes."
                                f"Return statuses: {"".join(f"\nprocess {x} exited with {y.exitcode} " for x, y in processes.items() if y.exitcode != 0)}")
+        # noinspection PyTypeChecker
         return 0 not in arr, list(arr)
 
     def visit_Call(self, node):
-        if isinstance(node.func, ast.Name) and node.func.id not in self.whitelist._whitelisted_globals:
+        if isinstance(node.func, ast.Name) and node.func.id not in self.whitelist._whitelisted_globals\
+                and node.func.id not in self.made:
             self.isSafe = False
         elif isinstance(node.func, ast.Attribute) and node.func.attr not in self.whitelist._whitelisted_globals:
             self.isSafe = False
@@ -102,6 +104,8 @@ class ASTSecure(ast.NodeTransformer):
     def visit_Assign(self, node):
         if isinstance(node.value, (ast.Name, ast.Constant)):
             self.last_assign = node.targets
+            self.log_if_number(node)
+            self.handle_made_appending_for_assign(node)
             self.check_value_safe(node.value)
 
         if self.isSafe:
@@ -110,6 +114,8 @@ class ASTSecure(ast.NodeTransformer):
     def visit_AugAssign(self, node):
         if isinstance(node.value, (ast.Name, ast.Constant)):
             self.check_value_safe(node.value)
+            self.log_if_number(node)
+            self.made.append(node.target.id)
             self.last_assign = node.target.id
 
         if self.isSafe:
@@ -118,6 +124,8 @@ class ASTSecure(ast.NodeTransformer):
     def visit_AnnAssign(self, node):
         if isinstance(node.value, (ast.Name, ast.Constant)):
             self.check_value_safe(node.value)
+            self.log_if_number(node)
+            self.made.append(node.target.id)
             self.last_assign = node.target.id
 
         if self.isSafe:
@@ -126,6 +134,7 @@ class ASTSecure(ast.NodeTransformer):
     def visit_Attribute(self, node: ast.Attribute):
         self.check_attr(node)
         if self.isSafe:
+            self.next_name_safe = True
             self.generic_visit(node)
 
     def visit_BinOp(self, node):
@@ -135,6 +144,21 @@ class ASTSecure(ast.NodeTransformer):
                 if (isinstance(node.right.value, (int, float)) and node.right.value > self.whitelist.max_integer_value) or \
                         (isinstance(node.left.value, (int, float)) and node.left.value > self.whitelist.max_integer_value):
                     self.isSafe = False
+        if self.isSafe:
+            self.generic_visit(node)
+
+    def visit_FunctionDef(self, node):
+        self.made.append(node.name)
+        self.generic_visit(node)
+
+    def visit_ClassDef(self, node):
+        self.made.append(node.name)
+        self.generic_visit(node)
+
+    def visit_Name(self, node):
+        if not (node.id in self.whitelist._whitelisted_globals or
+            node.id in self.made or self.next_name_safe):
+            self.isSafe = False
         if self.isSafe:
             self.generic_visit(node)
 
@@ -155,6 +179,36 @@ class ASTSecure(ast.NodeTransformer):
             if isinstance(item.value, (int, float)) and item.value > 100:
                 self.isSafe = False
 
+    def log_if_number(self, assign: ast.AugAssign | ast.AnnAssign | ast.Assign):
+        if not type(assign) in [ast.AugAssign, ast.AnnAssign, ast.Assign]:
+            return
+
+        if isinstance(assign, ast.AugAssign | ast.AnnAssign):
+            if not isinstance(assign.value, ast.Constant):
+                return
+            if isinstance(assign.value.value, int | float):
+                self.numbers[assign.target.id] = assign.value.value
+        if isinstance(assign, ast.Assign):
+            if isinstance(assign.value, ast.Constant):
+                if isinstance(assign.value.value, int | float):
+                    for target in assign.targets:
+                        if not isinstance(target, ast.Name):
+                            continue
+                        self.numbers[target.id] = assign.value.value
+            elif isinstance(assign.value, ast.Tuple):
+                if len(assign.targets) == 1 and isinstance(assign.targets[0], ast.Tuple):
+                    # noinspection PyTypeChecker
+                    target: ast.Tuple = assign.targets[0]
+                    if len(assign.value.elts) == len(target.elts):
+                        for i in range(len(target.elts)):
+                            if not (isinstance(target.elts[i], ast.Name) and
+                                    isinstance(assign.value.elts[i], ast.Constant)):
+                                continue
+                            if not isinstance(assign.value.elts[i].value, int | float): # type: ignore
+                                continue
+                            self.numbers[target.elts[i].id] = assign.value.value[i] # type: Ignore
+        return
+
     # TODO
 
     def check_attr(self, attr: ast.Attribute | ast.Name):
@@ -170,6 +224,22 @@ class ASTSecure(ast.NodeTransformer):
         if lst is None or attr.attr not in lst:
             self.isSafe = False
         return attr
+
+    def handle_made_appending_for_assign(self, node):
+        def handle_tuple(tpl: ast.Tuple):
+            for elt in tpl.elts:
+                if isinstance(elt, ast.Tuple):
+                    handle_tuple(elt)
+                elif isinstance(elt, ast.Name):
+                    self.made.append(elt.id)
+
+        for target in node.targets:
+            if not isinstance(target, ast.Name | ast.Tuple):
+                continue
+            if isinstance(target, ast.Tuple):
+                handle_tuple(target)
+                continue
+            self.made.append(target.id)
 
 #    def check_comp(self, comp: ast.comprehension, elt: ast.expr):
 #        switch = {
